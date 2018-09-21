@@ -1,0 +1,115 @@
+load("csp-constraint-propagation.stlx");
+//load("csp-backtrack-solver.stlx");
+
+// Create a CSP that defines the Zebra puzzle.
+zebraCSP := procedure() {
+    // You need to define the sets Variables, Values, and Constraints appropriately.
+    Nations := { "English", "Spanish", "Ukrainian", "Norwegian", "Japanese" };
+    Drinks  := { "Coffee", "Tea", "Milk", "OrangeJuice", "Water" };
+    Pets    := { "Dog", "Snails", "Horse", "Fox", "Zebra" };
+    Brands  := { "LuckyStrike", "Parliaments", "Kools", "Chesterfields", "OldGold" };
+    Colours := { "Red", "Green", "Ivory", "Yellow", "Blue" };
+
+    Variables := Nations + Drinks + Pets + Brands + Colours;
+    Values := { 1 .. 5 };
+
+    // Constraints
+    Constraints := {};
+
+    // 1. There are fives houses
+    // 2. The Englishman lives in the red house
+    Constraints += { "English == Red" };
+    // 3. The Spaniard owns the dog
+    Constraints += { "Spanish == Dog" };
+    // 4. Coffee is drunk in the green house
+    Constraints += { "Coffee == Green" };
+    // 5. The Ukrainian drinks tea
+    Constraints += { "Ukrainian == Tea" };
+    // 6. The green house is immediately to the right of the ivory house
+    Constraints += { "Green == Ivory + 1" };
+    // 7. The Old Gold smoker owns snails
+    Constraints += { "OldGold == Snails" };
+    // 8. Kools are smoked in the yellow hous
+    Constraints += { "Kools == Yellow" };
+    // 9. Milk is drunk in the middle house
+    Constraints += { "Milk == 3" };
+    // 10. The Norwegian lives in the ﬁrst house
+    Constraints += { "Norwegian == 1" };
+    // 11. The man who smokes Chesterﬁelds lives in the house next to the man with the fox
+    Constraints += { "nextTo(Chesterfields, Fox)" };
+    // 12. Kools are smoked in the house next to the house where the horse is kept
+    Constraints += { "nextTo(Kools, Horse)" };
+    // 13. The Lucky Strike smoker drinks orange juice
+    Constraints += { "LuckyStrike == OrangeJuice" };
+    // 14. The Japanese smokes Parliaments
+    Constraints += { "Japanese == Parliaments" };
+    // 15. The Norwegian lives next to the blue house
+    Constraints += { "nextTo(Norwegian, Blue)" };
+
+    // Furthermore...
+    // 1. Each of the five houses is painted in a different colour
+    Constraints += allDifferent(Colours);
+    // 2. The inhabitants of the five houses are of different nationalities
+    Constraints += allDifferent(Nations);
+    // 3. They own different pets
+    Constraints += allDifferent(Pets);
+    // 4. They drink different beverages
+    Constraints += allDifferent(Drinks);
+    // 5. They smoke different brands of cigarettes
+    Constraints += allDifferent(Brands);
+    
+    return [Variables, Values, Constraints];
+};
+// nextTo(x, y) is true iff the house x is next to the house y.
+nextTo := procedure(x, y) {
+    return abs(x - y) == 1;
+};
+// For a given set of variables V, allDifferent(V) computes a set of formulae that
+// express the fact that all variables in V take different values.
+allDifferent := procedure(V) {
+    return { "$a$ != $b$" : a in V, b in V | a != b };
+};
+
+// This procedure will print a solution.  The input is a variable assignment as it is
+// computed by procedure solve in the file "csp-constraint-propagation.stlx".
+printSolution := procedure(Assignment) {
+    Nations := { "English", "Spanish", "Ukrainian", "Norwegian", "Japanese" };
+    Drinks  := { "Coffee", "Tea", "Milk", "OrangeJuice", "Water" };
+    Pets    := { "Dog", "Snails", "Horse", "Fox", "Zebra" };
+    Brands  := { "LuckyStrike", "Parliaments", "Kools", "Chesterfields", "OldGold" };
+    Colours := { "Red", "Green", "Ivory", "Yellow", "Blue" };
+    print();
+    print("Water is drunk in house number $Assignment[\"Water\"]$.");
+    print("The zebra lives in house number $Assignment[\"Zebra\"]$.");
+    print();
+    longest := max({ #x : [x, h] in Assignment });
+    line    := "-" * (5 * (longest + 3) + 6);
+    for (house in [1 .. 5]) {
+        print(line);
+        l := [];
+        for (Class in [ Nations, Drinks, Pets, Brands, Colours ], x in Class) {
+            l += [ pad("$y$", longest) : [y, h] in Assignment | y == x && h == house ];
+        }
+        print("| $house$: | " + join(l, " | ") + " |");
+    }
+    print(line);
+    print();
+};
+
+pad := procedure(s, l) {
+    n := l - #s;
+    return s + " " * n;
+};
+
+main := procedure() {
+    resetRandom();
+    startTotal := now();
+    csp        := zebraCSP();
+    solution   := solve(csp);
+    stopTotal  := now();
+    all := (stopTotal - startTotal) / 1000.0;
+    print("The total computation took $all$ seconds.");
+    printSolution(solution);
+};
+main();
+ 

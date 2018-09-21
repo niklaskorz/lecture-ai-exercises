@@ -1,0 +1,73 @@
+search := procedure(start, nextStates) {
+    Frontier := { start };
+    goals := {};
+    while (Frontier != {}) {
+        NewFrontier := {};
+        for (s in Frontier, ns in nextStates(s)) {
+            NewFrontier += { ns };
+            if (#ns == 8) {
+                goals += { ns };
+            }
+        }
+        Frontier := NewFrontier;
+    }
+    return goals;
+};
+
+hasColumn := procedure(state, col) {
+    return col in state;
+};
+
+hasDiagonal := procedure(state, col) {
+    n := #state;
+    L := { -n .. -1 };
+    for (i in L) {
+        if (col - i > 0 && state[i] == col - i) {
+            return true;
+        }
+        if (col + i < 9 && state[i] == col + i) {
+            return true;
+        }
+    }
+    return false;
+};
+
+nextStates := procedure(state) {
+    columns := { 1 .. 8 };
+    k := #state;
+    newStates := {};
+    for (col in columns | !hasColumn(state, col) && !hasDiagonal(state, col)) {
+        newStates += { state + [col] };
+    }
+    return newStates;
+};
+
+printBoard := procedure(Queens) {
+    if (Queens == om) {
+        print("no solution found");
+        return;
+    }
+    n := #Queens;
+    print((4 * n + 1) * "-");
+    for (row in [1..n]) {
+        line := "|";
+        for (col in [1..n]) {
+            if (Queens[row] == col) {
+                line += " Q |";
+            } else {
+                line += "   |";
+            }
+        }
+        print(line);
+        print((4*n+1) * "-");
+    }
+};
+
+start := [];
+startTime := now();
+goals := search(start, nextStates);
+endTime := now();
+for (goal in goals) {
+    printBoard(goal);
+}
+print("Found $#goals$ goals in $endTime - startTime$ms");
