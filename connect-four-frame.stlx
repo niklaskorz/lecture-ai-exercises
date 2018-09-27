@@ -4,7 +4,7 @@ value := cachedProcedure(State, player, limit, alpha := -1, beta := 1) {
         return utility(State, player);
     }
     if (limit == 0) {
-        return 0;
+        return evaluate(State, player);
     }
     val := -1;
     for (ns in nextStates(State, player)) {
@@ -16,7 +16,7 @@ value := cachedProcedure(State, player, limit, alpha := -1, beta := 1) {
     }
     return val;
 };
-best_move := procedure(State, player, limit := 5) {
+best_move := procedure(State, player, limit) {
     bestVal := value(State, player, limit);
     NS      := nextStates(State, player);
     BestNS  := {ns : ns in NS | -value(ns,other(player),limit-1) == bestVal};
@@ -28,7 +28,7 @@ play_game := procedure() {
     while (!finished(State)) {
         start        := now();
         firstPlayer  := players()[1];
-        [val, State] := best_move(State, firstPlayer);
+        [val, State] := best_move(State, firstPlayer, limit_for_state(State));
         stop         := now();
         print(cacheStats(value));
         clearCache(value);
@@ -46,6 +46,43 @@ play_game := procedure() {
 // Game specific code is below.                                               //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
+
+limit_for_state := procedure(s) {
+    return 12 - free_columns(s);
+};
+
+free_columns := procedure(s) {
+    columns := { col : col in [1..7] | find_empty(s, col) != 7 };
+    return #columns;
+};
+
+evaluate := procedure(s, p) {
+    num_three_p := 0;
+    num_three_o := 0;
+
+    for (line in all_lines()) {
+        pc := 0;
+        oc := 0;
+
+        for ([row, col] in line) {
+            if (s[row][col] == p) {
+                oc := 0;
+                pc += 1;
+            } else if (s[row][col] != " ") {
+                pc := 0;
+                oc += 1;
+            }
+        }
+
+        if (pc >= 3) {
+            num_three_p += 1;
+        } else if (oc >= 3) {
+            num_three_o += 1;
+        }
+    }
+
+    return 1/10 * (num_three_p - num_three_o);
+};
 
 players := [] |-> [ "X", "O" ];
 startState := procedure() {
@@ -86,10 +123,10 @@ utility := procedure(State, player) {
     }
 };
 all_lines := cachedProcedure() {
-    vertical := { { [row, col] : row in [i..i+3] } : i in [1..3], col in [1..7] };
-    horizontal := { { [row, col] : col in [i..i+3] } : i in [1..4], row in [1..6] };
-    diagonal_up := { { [i+a, i+b] : i in [1..4] } : a in [0..2], b in [0..3] };
-    diagonal_down := { { [(7-i)-a, i+b] : i in [1..4] } : a in [0..2], b in [0..3] };
+    vertical := { [ [row, col] : row in [i..i+3] ] : i in [1..3], col in [1..7] };
+    horizontal := { [ [row, col] : col in [i..i+3] ] : i in [1..4], row in [1..6] };
+    diagonal_up := { [ [i+a, i+b] : i in [1..4] ] : a in [0..2], b in [0..3] };
+    diagonal_down := { [ [(7-i)-a, i+b] : i in [1..4] ] : a in [0..2], b in [0..3] };
     return vertical + horizontal + diagonal_up + diagonal_down;
 };
 last_line_filled := procedure(State) { 
